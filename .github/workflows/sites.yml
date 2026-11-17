@@ -11,7 +11,7 @@ on:
     types: [site-updated]
   push:
     branches: [main]
-    paths: [hosted.json]
+    paths: [hosted.json, "clients/**"]
 
 permissions:
   contents: write

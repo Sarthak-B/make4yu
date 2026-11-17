@@ -1,6 +1,6 @@
 // Copies every client repo listed in hosted.json into site/_sites/<name>/ so the make4yu
 // Cloudflare project can serve it at <name>.make4yu.com (see functions/_middleware.js).
-// Usage: node scripts/sync-sites.mjs            (clones each repo from GitHub)
+// Usage: node scripts/sync-sites.mjs            (clones each repo from GitHub; "./clients/x" values are folders in this repo)
 //        node scripts/sync-sites.mjs name=/path (use a local checkout for that site, for testing)
 import fs from "node:fs"; import path from "node:path"; import { execFileSync } from "node:child_process";
 
@@ -28,6 +28,8 @@ const wanted = Object.keys(sites).filter(k => !k.startsWith("_"));
 for (const name of wanted) {
   if (!/^[a-z0-9-]+$/.test(name) || name === "www") { console.error(`skip "${name}": use lowercase letters, numbers and dashes`); continue; }
   let src = local[name], tmp;
+  // a value starting with "./" is a folder inside this repo (sites built here, with no repo of their own)
+  if (!src && sites[name].startsWith("./")) src = path.join(ROOT, sites[name]);
   if (!src) {
     tmp = fs.mkdtempSync(path.join(fs.realpathSync("/tmp"), "site-"));
     execFileSync("git", ["clone", "--depth", "1", "--quiet", `https://github.com/${sites[name]}.git`, tmp], { stdio: "inherit" });
