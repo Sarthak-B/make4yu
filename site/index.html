@@ -1060,13 +1060,11 @@ body:not(.is-admin){background:#0C2218}
 .lv-open:hover,.lv-x:hover{background:rgba(255,255,255,.14)}
 .lv-x{width:40px;padding:0;font-size:22px}
 .lv-stage{flex:1;min-height:0;display:grid;place-items:center;padding:0 16px 16px}
-.lv-screen{position:relative;overflow:hidden;background:#fff;border-radius:14px;box-shadow:0 40px 90px -30px rgba(0,0,0,.6);transform:translateY(24px) scale(.97);transition:transform .55s cubic-bezier(.2,.7,.2,1),width .45s cubic-bezier(.2,.7,.2,1),height .45s cubic-bezier(.2,.7,.2,1),border-radius .45s}
+.lv-screen{position:relative;overflow:hidden;background:#0F1E19 center top/cover no-repeat;border-radius:14px;box-shadow:0 40px 90px -30px rgba(0,0,0,.6);transform:translateY(24px) scale(.97);transition:transform .55s cubic-bezier(.2,.7,.2,1),width .45s cubic-bezier(.2,.7,.2,1),height .45s cubic-bezier(.2,.7,.2,1),border-radius .45s}
 .lv.on .lv-screen{transform:none}
 .lv-screen.lv-phone{border-radius:34px;box-shadow:0 0 0 10px #101815,0 40px 90px -30px rgba(0,0,0,.7)}
-.lv-screen iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;background:#fff}
-.lv-load{position:absolute;inset:0;display:grid;place-items:center;font:600 14px/1.4 inherit;color:#5B6B65;background:#F7F8F5;transition:opacity .4s;pointer-events:none}
-.lv-load.gone{opacity:0}
-.lv-load i{display:block;width:28px;height:28px;margin:0 auto 12px;border-radius:50%;border:3px solid #DCE3DE;border-top-color:#1D4A3D;animation:lvSpin .8s linear infinite}
+.lv-screen iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;background:transparent;opacity:0;transition:opacity .45s}
+.lv-screen iframe.ready{opacity:1}
 @keyframes lvSpin{to{transform:rotate(360deg)}}
 @media (max-width:640px){.lv-bar{flex-wrap:wrap;gap:10px;padding:10px 12px}.lv-title{flex-basis:calc(100% - 52px)}.lv-seg{order:3}.lv-open{order:4;margin-left:auto}.lv-stage{padding:0 8px 10px}}
 @media (prefers-reduced-motion:reduce){.lv,.lv-bar,.lv-screen,.fitframe iframe{transition:none}.fitframe,.live-dot::before{animation:none}}
@@ -1081,7 +1079,7 @@ window.fitFrames=function(root){
   });
 };
 (function(){
-  var lv, frame, screen, loader, mode="desk", openedAt=0, lastFocus=null;
+  var lv, frame, screen, mode="desk", openedAt=0, lastFocus=null;
   function host(u){try{return new URL(u).host.replace(/^www\./,"")}catch(e){return u}}
   function layout(){
     if(!lv||lv.hidden) return;
@@ -1107,10 +1105,10 @@ window.fitFrames=function(root){
     lv.innerHTML='<div class="lv-bar"><div class="lv-title"><b></b><small></small></div>'+
       '<div class="lv-seg" role="group" aria-label="Preview size"><button type="button" data-mode="desk">Desktop</button><button type="button" data-mode="phone">Phone</button></div>'+
       '<a class="lv-open" target="_blank" rel="noopener">Open in new tab ↗</a><button type="button" class="lv-x" aria-label="Close preview">×</button></div>'+
-      '<div class="lv-stage"><div class="lv-screen"><iframe title="Live website" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe><div class="lv-load"><div><i></i>Loading the live website…</div></div></div></div>';
+      '<div class="lv-stage"><div class="lv-screen"><iframe title="Live website" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe></div></div>';
     document.body.appendChild(lv);
-    frame=lv.querySelector("iframe"); screen=lv.querySelector(".lv-screen"); loader=lv.querySelector(".lv-load");
-    frame.addEventListener("load",function(){ if(frame.src!=="about:blank") loader.classList.add("gone") });
+    frame=lv.querySelector("iframe"); screen=lv.querySelector(".lv-screen");
+    frame.addEventListener("load",function(){ if(frame.src!=="about:blank") frame.classList.add("ready") });
     lv.querySelector(".lv-x").onclick=close;
     lv.querySelector(".lv-stage").addEventListener("click",function(e){ if(e.target===e.currentTarget) close() });
     lv.querySelector(".lv-seg").addEventListener("click",function(e){var b=e.target.closest("button"); if(!b) return; mode=b.dataset.mode; layout();});
@@ -1118,12 +1116,13 @@ window.fitFrames=function(root){
     addEventListener("resize",layout);
     addEventListener("hashchange",close);
   }
-  window.openLive=function(url,title){
+  window.openLive=function(url,title,shot){
     if(!lv) build(); lastFocus=document.activeElement;
     lv.querySelector(".lv-title b").textContent=title||host(url);
     lv.querySelector(".lv-title small").textContent=host(url)+" · live website";
     lv.querySelector(".lv-open").href=url;
-    mode=innerWidth<760?"phone":"desk"; loader.classList.remove("gone");
+    mode=innerWidth<760?"phone":"desk"; frame.classList.remove("ready");
+    screen.style.backgroundImage=shot?(mode==="phone"&&/\.jpg$/.test(shot)?'url("'+shot.replace(/\.jpg$/,"-m.jpg")+'"),':"")+'url("'+shot+'")':"";
     lv.hidden=false; document.documentElement.style.overflow="hidden"; layout();
     frame.src=url; requestAnimationFrame(function(){requestAnimationFrame(function(){lv.classList.add("on")})});
     lv.querySelector(".lv-x").focus({preventScroll:true});
@@ -1751,7 +1750,7 @@ function initSite(){
   };
   $("#filters").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;filt=b.dataset.f;$$("#filters button").forEach(x=>x.classList.toggle("on",x===b));applyFilter();track("work_click","Filter: "+filt)});
   drawWork([]);
-  $("#workGrid").addEventListener("click",e=>{const a=e.target.closest(".show[data-live]"); if(!a||e.metaKey||e.ctrlKey||e.shiftKey||e.button) return; e.preventDefault(); openLive(a.dataset.live,a.dataset.title);});
+  $("#workGrid").addEventListener("click",e=>{const a=e.target.closest(".show[data-live]"); if(!a||e.metaKey||e.ctrlKey||e.shiftKey||e.button) return; e.preventDefault(); const im=a.querySelector(".viewport img"); openLive(a.dataset.live,a.dataset.title,im&&im.getAttribute("src"));});
   API.portfolio().then(items=>{
     const abs=u=>u?(/^https?:\/\//i.test(u)?u:"https://"+u):"";
     const hostOf=u=>(abs(u).match(/^https?:\/\/(?:www\.)?([^/?#]+)/i)||[])[1]||"";
