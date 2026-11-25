@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://iconicdesign.make4yu.com/sitemap.xml
