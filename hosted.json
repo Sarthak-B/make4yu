@@ -1,5 +1,6 @@
 {
   "_about": "Client sites served from this make4yu project. Key = subdomain (key.make4yu.com), value = the client's GitHub repo, or ./clients/<folder> for a site kept in this repo. The Hosted sites workflow copies each repo into site/_sites/<key>/ and Cloudflare serves it at <key>.make4yu.com. Then add <key>.make4yu.com under this project's Custom domains.",
   "houseofinfra": "Sarthak-B/house-of-infra",
-  "rajshree-emporium": "./clients/rajshree-emporium"
+  "rajshree-emporium": "./clients/rajshree-emporium",
+  "iconicdesign": "./clients/iconic-design"
 }
