@@ -79,16 +79,25 @@ const PAGES = [
 
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const wa = text => `https://wa.me/${WA}?text=${encodeURIComponent(text)}`;
+// Freshness: the build date shows on every page ("Prices and plans updated …") and in the schema,
+// so only rebuild when something on these pages really changed. Pricing questions carry the year
+// people search with ("… cost in India in 2026?"); in December they switch to the coming year.
+const NOW = new Date();
+const UPDATED_ISO = NOW.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD, India time
+const UPDATED_TEXT = NOW.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+const SEARCH_YEAR = NOW.getMonth() === 11 ? NOW.getFullYear() + 1 : NOW.getFullYear();
+const withYear = q => /^How much does .* cost\?$/.test(q) ? q.replace(/cost\?$/, `cost in India in ${SEARCH_YEAR}?`) : q;
 const COMMON_FAQ = ["Are the free samples really free?", "Yes. We design two homepage samples for your business. If you don't love either, you pay nothing and owe nothing — no advance, no card."];
 
 function page(p) {
   const url = `${SITE}/${p.slug}`;
   const desc = `${p.lede.split(". ")[0]}. make4yu builds websites for ${p.short.toLowerCase()} across India. Two free samples before you pay, live in about a week.`;
-  const faq = [...p.faq, COMMON_FAQ];
+  const faq = [...p.faq, COMMON_FAQ].map(([q, a]) => [withYear(q), a]);
   const waText = `Hi make4yu! I'd like 2 free website samples for my ${p.noun}.`;
   const ld = [
     { "@context": "https://schema.org", "@type": "Service", name: p.title, serviceType: "Website design", url, description: desc, areaServed: "IN", provider: { "@type": "Organization", "@id": `${SITE}/#org`, name: "make4yu", url: `${SITE}/` },
       offers: p.plans.map(k => ({ "@type": "Offer", name: PLANS[k].name, price: PLANS[k].price.replace(/[^\d]/g, ""), priceCurrency: "INR" })) },
+    { "@context": "https://schema.org", "@type": "WebPage", "@id": `${url}#page`, url, name: `${p.title} | make4yu`, description: desc, inLanguage: "en-IN", dateModified: UPDATED_ISO, isPartOf: { "@id": `${SITE}/#site` }, publisher: { "@id": `${SITE}/#org` } },
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "make4yu", item: `${SITE}/` }, { "@type": "ListItem", position: 2, name: p.title, item: url }] },
   ];
@@ -154,6 +163,7 @@ section h2{font-size:clamp(28px,4vw,42px);margin-bottom:28px;max-width:20ch}
 .plan ul{margin:18px 0 0;padding:0;list-style:none}.plan li{padding:7px 0 7px 26px;position:relative;color:var(--sand-2);font-size:15.5px}
 .plan li::before{content:"";position:absolute;left:4px;top:15px;width:8px;height:8px;border-radius:2px;background:var(--violet);transform:rotate(45deg)}
 .free{margin-top:18px;color:var(--sand-2)}.free b{color:var(--sand)}
+.updated{margin-top:10px;font-size:13px;color:var(--sand-2)}
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
 .steps .card{counter-increment:s}.steps .card::before{content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--violet);color:#fff;font-weight:700;margin-bottom:14px}
 details{border-top:1px solid var(--line);padding:4px 0}details:last-of-type{border-bottom:1px solid var(--line)}
@@ -199,6 +209,7 @@ footer a{text-decoration:none}footer a:hover{text-decoration:underline}
   <h2>Simple, one-time pricing</h2>
   <div class="plans">${p.plans.map(k => { const pl = PLANS[k]; return `<div class="card plan"><h3>${pl.name}</h3><div class="price">${pl.price}</div><small>${esc(pl.note)}</small><ul>${pl.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul></div>`; }).join("")}</div>
   <p class="free"><b>Start with 2 free samples.</b> Pay 50% only when you pick one, and the rest only when you love the finished site. Care plan (hosting, updates, backups and your own editor) is free for the first month, then from ₹1,999/month.</p>
+  <p class="updated">Prices and plans updated <time datetime="${UPDATED_ISO}">${UPDATED_TEXT}</time>.</p>
 </section>
 
 <section>
@@ -256,7 +267,7 @@ footer a{text-decoration:none}footer a:hover{text-decoration:underline}
 
 for (const p of PAGES) fs.writeFileSync(path.join(ROOT, "site", p.slug + ".html"), page(p));
 
-const today = new Date().toISOString().slice(0, 10);
+const today = UPDATED_ISO;
 fs.writeFileSync(path.join(ROOT, "site", "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${SITE}/</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
